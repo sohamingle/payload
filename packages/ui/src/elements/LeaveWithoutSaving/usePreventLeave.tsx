@@ -78,6 +78,8 @@ export const usePreventLeave = ({
 
   const router = useRouter()
   const cancelledURL = useRef<string>('')
+  // Track if we're handling a popstate (back/forward) navigation
+  const isPopstateNavigation = useRef<boolean>(false)
 
   // check when page is about to be changed
   useEffect(() => {
@@ -128,6 +130,7 @@ export const usePreventLeave = ({
           if (isPageLeaving && prevent && (!onPrevent ? !window.confirm(message) : true)) {
             // Keep a reference of the href
             cancelledURL.current = newUrl
+            isPopstateNavigation.current = false
 
             // Cancel the route change
             event.preventDefault()
@@ -154,13 +157,59 @@ export const usePreventLeave = ({
     }
   }, [onPrevent, prevent, message])
 
+  // Handle browser back/forward button navigation (popstate events)
   useEffect(() => {
-    if (hasAccepted && cancelledURL.current) {
+    if (!prevent) {
+      return
+    }
+
+    // Push a new state to enable popstate detection
+    const currentUrl = window.location.href
+    window.history.pushState({ preventLeave: true }, '', currentUrl)
+
+    function handlePopstate() {
+      if (!onPrevent) {
+        // No custom handler, use native confirm
+        if (!window.confirm(message)) {
+          // User cancelled - push state back to prevent navigation
+          window.history.pushState({ preventLeave: true }, '', currentUrl)
+        }
+        return
+      }
+
+      // Store that this was a popstate navigation (back button)
+      isPopstateNavigation.current = true
+      // Store empty string to indicate "go back" rather than a specific URL
+      cancelledURL.current = ''
+
+      // Push state back to prevent the navigation
+      window.history.pushState({ preventLeave: true }, '', currentUrl)
+
+      // Show the custom modal
+      onPrevent()
+    }
+
+    window.addEventListener('popstate', handlePopstate)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopstate)
+    }
+  }, [prevent, onPrevent, message])
+
+  useEffect(() => {
+    if (hasAccepted) {
       if (onAccept) {
         onAccept()
       }
 
-      startRouteTransition(() => router.push(cancelledURL.current))
+      if (isPopstateNavigation.current) {
+        // For back button navigation, go back in history
+        // We need to go back twice: once for the state we pushed, once for actual back
+        window.history.go(-2)
+      } else if (cancelledURL.current) {
+        // For click navigation, push to the cancelled URL
+        startRouteTransition(() => router.push(cancelledURL.current))
+      }
     }
   }, [hasAccepted, onAccept, router, startRouteTransition])
 }
