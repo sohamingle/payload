@@ -169,29 +169,22 @@ export const usePreventLeave = ({
 
     function handlePopstate() {
       if (!onPrevent) {
-        // No custom handler, use native confirm
         if (!window.confirm(message)) {
-          // User cancelled - push state back to prevent navigation
           window.history.pushState({ preventLeave: true }, '', currentUrl)
         }
         return
       }
 
-      // Store that this was a popstate navigation (back button)
       isPopstateNavigation.current = true
-      // Store empty string to indicate "go back" rather than a specific URL
-      cancelledURL.current = ''
-
-      // Push state back to prevent the navigation
       window.history.pushState({ preventLeave: true }, '', currentUrl)
-
-      // Show the custom modal
       onPrevent()
     }
 
+    // Add the global popstate event listener
     window.addEventListener('popstate', handlePopstate)
 
     return () => {
+      // Remove the global popstate event listener
       window.removeEventListener('popstate', handlePopstate)
     }
   }, [prevent, onPrevent, message])
@@ -204,7 +197,6 @@ export const usePreventLeave = ({
 
       if (isPopstateNavigation.current) {
         // For back button navigation, go back in history
-        // We need to go back twice: once for the state we pushed, once for actual back
         window.history.go(-2)
       } else if (cancelledURL.current) {
         // For click navigation, push to the cancelled URL
