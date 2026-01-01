@@ -114,6 +114,16 @@ export const usePreventLeave = ({
       return element as HTMLAnchorElement
     }
 
+    /**
+     * Handle document click events to detect and block navigations that would leave the page.
+     *
+     * If the clicked element is an anchor whose navigation would leave the current page and prevention is enabled,
+     * this handler saves the target URL to `cancelledURL.current`, marks `isPopstateNavigation.current` as `false`,
+     * cancels the navigation by preventing default and stopping propagation, and invokes `onPrevent` if provided.
+     * When `onPrevent` is not provided, a confirmation dialog using `message` is shown; if the user declines, the navigation is blocked.
+     *
+     * @param event - The mouse event from a document click listener
+     */
     function handleClick(event: MouseEvent) {
       try {
         const target = event.target as HTMLElement
@@ -167,6 +177,11 @@ export const usePreventLeave = ({
     const currentUrl = window.location.href
     window.history.pushState({ preventLeave: true }, '', currentUrl)
 
+    /**
+     * Handle browser popstate (back/forward) events to optionally block navigation and start the prevention flow.
+     *
+     * If `onPrevent` is not provided, shows a confirmation using `message` and, when the user cancels, re-pushes the current URL to history to keep the page. If `onPrevent` is provided, marks the navigation as a popstate-initiated prevention, re-pushes the current URL to history, and invokes `onPrevent`.
+     */
     function handlePopstate() {
       if (!onPrevent) {
         if (!window.confirm(message)) {
