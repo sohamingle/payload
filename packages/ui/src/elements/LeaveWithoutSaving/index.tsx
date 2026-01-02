@@ -44,14 +44,14 @@ export const LeaveWithoutSaving: React.FC<LeaveWithoutSavingProps> = ({
   const handleAccept = useCallback(() => {
     closeModal(modalSlug)
     setHasAccepted(false)
-  }, [closeModal, modalSlug, setHasAccepted])
+  }, [closeModal, modalSlug])
 
   usePreventLeave({ hasAccepted, onAccept: handleAccept, onPrevent: handlePrevent, prevent })
 
   const onCancel: OnCancel = useCallback(() => {
     closeModal(modalSlug)
     setHasAccepted(false)
-  }, [closeModal, modalSlug, setHasAccepted])
+  }, [closeModal, modalSlug])
 
   const handleConfirm = useCallback(async () => {
     if (onConfirm) {
