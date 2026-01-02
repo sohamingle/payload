@@ -156,7 +156,6 @@ export const usePreventLeave = ({
       document.removeEventListener('click', handleClick, true)
     }
   }, [onPrevent, prevent, message])
-
   // Handle browser back/forward button navigation (popstate events)
   useEffect(() => {
     if (!prevent) return
@@ -169,7 +168,6 @@ export const usePreventLeave = ({
     window.history.pushState(null, '', window.location.href)
 
     function handlePopstate() {
-      if (!prevent) return
 
       window.history.pushState(null, '', window.location.href)
 
@@ -180,6 +178,7 @@ export const usePreventLeave = ({
           if (onAccept) {
             onAccept()
           }
+          // When the user clicks back, they pop this entry instead of leaving, allowing us to show a confirmation. If they confirm, we use history.go(-2) to skip both fake entries.
           window.history.go(-2)
         }
         return
@@ -195,7 +194,7 @@ export const usePreventLeave = ({
       // Remove the global popstate event listener
       window.removeEventListener('popstate', handlePopstate)
     }
-  }, [prevent, onPrevent, message])
+  }, [prevent, onPrevent, onAccept, message])
 
   useEffect(() => {
     if (hasAccepted) {
