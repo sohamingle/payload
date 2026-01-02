@@ -177,6 +177,9 @@ export const usePreventLeave = ({
 
       if (!onPrevent) {
         if (window.confirm(message)) {
+          if (onAccept) {
+            onAccept()
+          }
           window.history.go(-2)
         }
         return
