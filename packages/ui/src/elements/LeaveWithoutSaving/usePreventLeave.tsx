@@ -78,6 +78,8 @@ export const usePreventLeave = ({
 
   const router = useRouter()
   const cancelledURL = useRef<string>('')
+  // Track if we're handling a popstate (back/forward) navigation
+  const isPopstateNavigation = useRef<boolean>(false)
 
   // check when page is about to be changed
   useEffect(() => {
@@ -128,6 +130,7 @@ export const usePreventLeave = ({
           if (isPageLeaving && prevent && (!onPrevent ? !window.confirm(message) : true)) {
             // Keep a reference of the href
             cancelledURL.current = newUrl
+            isPopstateNavigation.current = false
 
             // Cancel the route change
             event.preventDefault()
@@ -154,13 +157,57 @@ export const usePreventLeave = ({
     }
   }, [onPrevent, prevent, message])
 
+  // Handle browser back/forward button navigation (popstate events)
   useEffect(() => {
-    if (hasAccepted && cancelledURL.current) {
+    if (!prevent) return
+
+    // This prevents creating a fake back button when user landed directly on this page
+    const hasBackHistory = window.history.length > 1
+
+    if (!hasBackHistory) return
+
+    window.history.pushState(null, '', window.location.href)
+
+    function handlePopstate() {
+      if (!prevent) return
+
+      window.history.pushState(null, '', window.location.href)
+
+      isPopstateNavigation.current = true
+
+      if (!onPrevent) {
+        if (window.confirm(message)) {
+          window.history.go(-2)
+        }
+        return
+      }
+
+      onPrevent()
+    }
+
+    // Add the global popstate event listener
+    window.addEventListener('popstate', handlePopstate)
+
+    return () => {
+      // Remove the global popstate event listener
+      window.removeEventListener('popstate', handlePopstate)
+    }
+  }, [prevent, onPrevent, message])
+
+  useEffect(() => {
+    if (hasAccepted) {
       if (onAccept) {
         onAccept()
       }
 
-      startRouteTransition(() => router.push(cancelledURL.current))
+      if (isPopstateNavigation.current) {
+        isPopstateNavigation.current = false
+        // For back button navigation, go back in history
+        window.history.go(-2)
+      } else if (cancelledURL.current) {
+        // For click navigation, push to the cancelled URL
+        startRouteTransition(() => router.push(cancelledURL.current))
+      }
     }
   }, [hasAccepted, onAccept, router, startRouteTransition])
 }
