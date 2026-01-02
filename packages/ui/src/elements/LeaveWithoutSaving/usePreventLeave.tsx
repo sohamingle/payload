@@ -159,24 +159,29 @@ export const usePreventLeave = ({
 
   // Handle browser back/forward button navigation (popstate events)
   useEffect(() => {
-    if (!prevent) {
-      return
-    }
+    if (!prevent) return
 
-    // Push a new state to enable popstate detection
-    const currentUrl = window.location.href
-    window.history.pushState({ preventLeave: true }, '', currentUrl)
+    // This prevents creating a fake back button when user landed directly on this page
+    const hasBackHistory = window.history.length > 1
+
+    if (!hasBackHistory) return
+
+    window.history.pushState(null, '', window.location.href)
 
     function handlePopstate() {
+      if (!prevent) return
+
+      window.history.pushState(null, '', window.location.href)
+
+      isPopstateNavigation.current = true
+
       if (!onPrevent) {
-        if (!window.confirm(message)) {
-          window.history.pushState({ preventLeave: true }, '', currentUrl)
+        if (window.confirm(message)) {
+          window.history.go(-2)
         }
         return
       }
 
-      isPopstateNavigation.current = true
-      window.history.pushState({ preventLeave: true }, '', currentUrl)
       onPrevent()
     }
 
@@ -196,6 +201,7 @@ export const usePreventLeave = ({
       }
 
       if (isPopstateNavigation.current) {
+        isPopstateNavigation.current = false
         // For back button navigation, go back in history
         window.history.go(-2)
       } else if (cancelledURL.current) {
