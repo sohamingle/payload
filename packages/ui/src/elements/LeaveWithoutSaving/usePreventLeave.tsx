@@ -208,8 +208,11 @@ export const usePreventLeave = ({
         // For back button navigation, go back in history
         window.history.go(-2)
       } else if (cancelledURL.current) {
+        const url = cancelledURL.current
+        cancelledURL.current = ''
+
         // For click navigation, push to the cancelled URL
-        startRouteTransition(() => router.push(cancelledURL.current))
+        startRouteTransition(() => router.push(url))
       }
     }
   }, [hasAccepted, onAccept, router, startRouteTransition])
